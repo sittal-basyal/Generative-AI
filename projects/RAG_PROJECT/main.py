@@ -1,46 +1,84 @@
+from typing import Collection
+
 from langchain.chat_models import init_chat_model
-from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community import retrievers
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_chroma import Chroma
+from dotenv import load_dotenv
 
 load_dotenv()
 
-model = init_chat_model(
+
+embedding_model = HuggingFaceEmbeddings(
+    model_name = 'sentence-transformers/all-MiniLM-L6-v2'
+)
+
+vector_store = Chroma(
+    persist_directory='chroma-db',
+    embedding_function= embedding_model,
+    collection_name='attention_paper'
+)
+
+retriever = vector_store.as_retriever(
+    search_type = 'mmr',
+    search_kwargs = {'k':4,
+                     'fetch_k':10,
+                     'lambda_mult':0.5
+                       }
+)
+
+
+llm = init_chat_model(
     model="ministral-3b-latest",
     model_provider="mistralai"
 )
 
-PATH = 'Data/attention.pdf'
+#prompt template
 
-# data ingestion 
-loader = PyPDFLoader(PATH)
-docs = loader.load()
 
-# data transformation - text chunking
-text_splitter = RecursiveCharacterTextSplitter(chunk_size =300 ,
-                                               chunk_overlap = 20)
-chunks = text_splitter.split_documents(docs)
-# print(chunks)
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """You are a helpful AI assistant.
 
-# embeddings
-embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+Use ONLY the provided context to answer the question.
+
+If the answer is not present in the context,
+say: "I could not find the answer in the document."
+"""
+        ),
+        (
+            "human",
+            """Context:
+{context}
+
+Question:
+{question}
+"""
+        )
+    ]
 )
 
-#vector_database
-db = Chroma.from_documents(
-    documents=chunks,
-    embedding=embedding_model,
-    collection_name="attention_paper"
-)
 
-#query
-query = """ The goal of reducing sequential computation also forms the foundation of the Extended Neural GPU
-[20], ByteNet [15] and ConvS2S [8], all of which use convolutional neural networks as basic building
-block, computing hidden representations in parallel for all input and output positions. """
-response = model.invoke("Hi")
+print("*"*10 ,"RAG System " ,'*'*10)
+while True:
+    print('**********Press 0 to exit ...***********')
+    query = input("You : ")
+    if query == '0':
+        break
+    docs = retriever.invoke(query)
+    context = "\n\n".join(
+        [doc.page_content for doc in docs ]
+    )
 
-retrieved_results = db.similarity_search(query=query)
+    final_prompt = prompt.invoke({
+        'context':context,
+        'question':query
+        }
+    )
 
+    response = llm.invoke(final_prompt)
+    print("\n")
+    print("AI :",response.content)
