@@ -13,6 +13,7 @@ dependencies = [
     "chromadb>=1.5.9",
     "docling-parse>=7.21.0",
     "docling-slim[format-pdf-docling]>=2.130.0",
+    "faiss-cpu>=1.15.1",
     "httpx2>=2.13.1",
     "ipykernel>=7.4.0",
     "jupyter>=1.1.1",
