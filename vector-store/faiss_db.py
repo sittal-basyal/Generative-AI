@@ -46,4 +46,5 @@ query = "What is encoder and decoder ? "
 retriever = db.as_retriever()
 final_doc = retriever.invoke(query)
 
-print(final_doc)
+print(final_doc[0].page_content)
+
