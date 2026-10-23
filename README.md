@@ -1,0 +1,1 @@
+This is a repository where I learnt about Generative AI 
