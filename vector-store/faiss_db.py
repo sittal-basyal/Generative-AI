@@ -48,3 +48,4 @@ final_doc = retriever.invoke(query)
 
 print(final_doc[0].page_content)
 
+db.save_local('faiss_db')
