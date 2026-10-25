@@ -34,8 +34,8 @@ retriever = vector_store.as_retriever(
     }
 )
 
-# Test retrieval
-results = retriever.invoke("What is LangGraph?")
+# # Test retrieval
+# results = retriever.invoke("What is LangGraph?")
 
-for doc in results:
-    print(doc.page_content)
+# for doc in results:
+#     print(doc.page_content)
